@@ -1,4 +1,4 @@
-package day02.study.thread01.thread;
+package thread;
 
 import java.util.concurrent.locks.ReentrantLock;
 
