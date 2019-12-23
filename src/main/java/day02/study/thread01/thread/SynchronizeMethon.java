@@ -1,4 +1,4 @@
-package day02.study.thread;
+package day02.study.thread01.thread;
 
 /**
  * Description：方法锁 源程序<br/>

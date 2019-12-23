@@ -1,4 +1,4 @@
-package day02.study.thread.productandconsumer;
+package day02.study.thread01.thread.productandconsumer;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;

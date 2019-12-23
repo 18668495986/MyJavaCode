@@ -1,4 +1,4 @@
-package day02.study.thread;
+package day02.study.thread01.thread;
 
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -13,7 +13,6 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class ReentrantLockDemo { //java 1.5 版本加入的互斥锁 更加面向对象（将🔒也看成一个对象）
     public static void main(String[] args) {
-
 //        Thread t = new Thread(new MyReentrantLock()); //方式1
 //        Thread wty = new Thread(t, "wty");
 //        Thread zwj = new Thread(t, "zwj");

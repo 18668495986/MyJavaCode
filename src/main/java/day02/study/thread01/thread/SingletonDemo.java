@@ -1,4 +1,4 @@
-package day02.study.thread;
+package day02.study.thread01.thread;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -26,7 +26,7 @@ class TestThread implements Runnable { //<测试代码>
         for (int i = 0; i < 1000; i++) {
             SingletonLazy lazy = SingletonLazy.getInstance();
         }
-        System.out.println("lazy" + SingletonLazy.set); //lazy[day02.study.thread.SingletonLazy@1cc8988a, day02.study.thread.SingletonLazy@5e99dd12]
+        System.out.println("lazy" + SingletonLazy.set); //lazy[day02.study.thread01.thread.SingletonLazy@1cc8988a, day02.study.thread01.thread.SingletonLazy@5e99dd12]
 
 //        for (int i = 0; i < 10; i++) {
 //            SingletonHungry hungry = SingletonHungry.getInstance();
