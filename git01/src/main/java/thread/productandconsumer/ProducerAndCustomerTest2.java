@@ -15,6 +15,8 @@ import java.util.concurrent.locks.ReentrantLock;
 public class ProducerAndCustomerTest2 {  //生产者与消费者模式 <ReentrantLock方式>
     /**
      * 定义需要用到的公用变量
+     * 锁必须配套！！！ condition.await()-->condition.signalAll()
+     * reentrantLock.wait() ---> reentrantLock.notifyAll();
      */
     static boolean should = true;
     static String[] name = {"iPhone", "华为", "小米", "三星"}; //产品名称
@@ -24,20 +26,19 @@ public class ProducerAndCustomerTest2 {  //生产者与消费者模式 <Reentran
     public static void main(String[] args) {
         Product product = new Product();
         //生产者
-        new Thread(new Producer(product), "wty").start();
-        new Thread(new Producer(product), "zwj").start();
-        new Thread(new Producer(product), "zpb").start();
+        new Thread(new Producer2(product), "wty").start();
+        new Thread(new Producer2(product), "zwj").start();
+        new Thread(new Producer2(product), "zpb").start();
 
         //消费者
-        new Thread(new Customer(product), "zq").start();
-        new Thread(new Customer(product), "cq").start();
-        new Thread(new Customer(product), "xw").start();
+        new Thread(new Customer2(product), "zq").start();
+        new Thread(new Customer2(product), "cq").start();
+        new Thread(new Customer2(product), "xw").start();
     }
 }
 
 class Producer2 implements Runnable {
     Product product;
-
     public Producer2(Product product) {
         this.product = product;
     }
@@ -55,7 +56,9 @@ class Producer2 implements Runnable {
                     ProducerAndCustomerTest2.should = false;
                     ProducerAndCustomerTest2.condition.signalAll();//切换状态 通知消费
                 }else {
-                    ProducerAndCustomerTest2.reentrantLock.wait(); //其他线程进行等待
+//                    ProducerAndCustomerTest2.reentrantLock.wait(); //其他线程进行等待
+                    ProducerAndCustomerTest2.condition.await();
+
                 }
             } catch (InterruptedException e) {
                 e.printStackTrace();
@@ -79,7 +82,7 @@ class Customer2 implements Runnable {
             ProducerAndCustomerTest2.reentrantLock.lock();
             try {
                 if(ProducerAndCustomerTest2.should){ //还在生产，需要等待
-                    ProducerAndCustomerTest2.reentrantLock.wait();
+                    ProducerAndCustomerTest2.condition.await();
                 }else {
                     //抢到资源的 开始消费
                     System.out.println(Thread.currentThread().getName()+"开始消费"+product.getName());
