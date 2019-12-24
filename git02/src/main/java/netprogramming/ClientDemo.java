@@ -1,4 +1,4 @@
-package networkprogramming;
+package netprogramming;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
