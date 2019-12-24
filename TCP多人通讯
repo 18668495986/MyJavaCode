@@ -1,0 +1,149 @@
+--------------------------------------------------------------------
+/**
+ * 服务端
+ */
+public class ServerDemo {
+
+    public static List<Socket> slist = new ArrayList<>();
+
+    public static void main(String[] args) {
+        try {
+            //1. 创建服务端
+            ServerSocket serverSocket = new ServerSocket(10086);
+            System.out.println("服务端启动....");
+            while (true) {
+                //2. 等待客户端
+                Socket socket = serverSocket.accept(); // 阻塞
+                slist.add(socket);
+                //3. 客户端连接套接字传递给线程
+                new Thread(new ServerSendThread(socket)).start();
+                new Thread(new ServerReceiveThread(socket)).start();
+            }
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+/**
+ * 服务端接受请求的线程
+ */
+class ServerReceiveThread implements Runnable {
+    private Socket socket;
+    private BufferedReader br;
+    public ServerReceiveThread(Socket socket) {
+        try {
+            this.socket = socket;
+            br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    public void run() {
+        while (true) {
+            try {
+                String line = socket.getInetAddress().getHostName() + "说：" + br.readLine();
+                System.out.println(line);
+            }catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
+/**
+ * 服务端发送请求的线程
+ */
+class ServerSendThread implements Runnable {
+    private Socket socket;
+    private PrintWriter pw;
+    private Scanner scanner = new Scanner(System.in);
+    public ServerSendThread(Socket socket) {
+        this.socket = socket;
+    }
+    public void run() {
+        while (true) {
+            try {
+            BufferedReader br = new BufferedReader(new InputStreamReader(socket.getInputStream())); // 讲客户端输出的数据读取出来
+            String line = br.readLine();
+                for (int i = 0;i < ServerDemo.slist.size();i++) { // 遍历给每一个存放在集合中的socket对象
+                        Socket socket = ServerDemo.slist.get(i);
+                        pw = new PrintWriter(socket.getOutputStream());
+                        pw.println(this.socket.getInetAddress().getHostName() + "说：" + line);
+                        pw.flush();
+                }
+            }catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
+-------------------------------------------------------------------------------------------
+
+/**
+ * 客户端
+ */
+public class ClientDemo {
+    //入口方法
+    public static void main(String[] args) {
+        try {
+            Socket socket = new Socket("localhost", 10086); // 客户端连接服务器的socket对象
+            System.out.println(socket.getInetAddress().getHostName() + "准备开始连接服务器");
+            new Thread(new ReceiveThread(socket)).start();
+            new Thread(new SendThread(socket)).start();
+        }catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}
+
+/**
+ * 客户端接受请求的线程
+ */
+class ReceiveThread implements Runnable {
+    private Socket socket;
+    private BufferedReader br;
+    public ReceiveThread(Socket socket) {
+        try {
+            this.socket = socket;
+            br = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public void run() {
+        while (true) {
+            try {
+                String line = br.readLine();
+                System.out.println(line);
+            }catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+}
+
+/**
+ * 客户端发送请求的线程
+ */
+class SendThread implements Runnable {
+    private Socket socket;
+    private PrintWriter pw;
+    private Scanner scanner = new Scanner(System.in);
+    public SendThread(Socket socket) {
+        try {
+            this.socket = socket;
+            pw = new PrintWriter(socket.getOutputStream());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    public void run() {
+        while (true) {
+            String line = scanner.nextLine();
+            pw.println(line);
+            pw.flush();
+        }
+    }
+}
