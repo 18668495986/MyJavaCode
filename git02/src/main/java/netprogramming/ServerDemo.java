@@ -25,7 +25,7 @@ public class ServerDemo { //TCP多人通信
                 Socket socket = serverSocket.accept();
                 System.out.println("有客户端连入");
                 sList.add(socket);
-                new Thread(new ServerReceiveThread(socket)).start();
+                new Thread(new ServerReceiveThread(socket)).start(); //可以注掉
                 new Thread(new ServerSendThread(socket)).start();
             }
         } catch (IOException e) {
