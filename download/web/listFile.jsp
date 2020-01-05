@@ -22,6 +22,7 @@
 
 <!-- 遍历Map集合 -->
 <c:forEach var="me" items="${fileNameMap}">
+<%--    value可选择 "/down2Load?method=downFile" （加密） 或者 "/down2Load?method=downFile2"（指定根目录）--%>
     <c:url value="/down2Load?method=downFile" var="downurl">
         <c:param name="filename" value="${me.key}"></c:param>
     </c:url>

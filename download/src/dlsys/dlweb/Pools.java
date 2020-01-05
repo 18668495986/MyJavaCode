@@ -5,15 +5,14 @@ import org.apache.commons.fileupload.FileUploadBase;
 import org.apache.commons.fileupload.ProgressListener;
 import org.apache.commons.fileupload.disk.DiskFileItemFactory;
 import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.junit.Test;
 import utils.beanfactory.staticfactory.Factory;
 
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
+import java.net.URLEncoder;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -28,28 +27,93 @@ import java.util.UUID;
  * @version : 1.0
  */
 public class Pools {
-    // 对googUpload方法进行封装
+
+    // 对普通上传方式进行封装
+    public String getCommonMessage(String message, HttpServletRequest request,
+                                   HttpServletResponse response,String savePath) {
+        try {
+            //使用Apache文件上传组件处理文件上传步骤：
+            //1、创建一个DiskFileItemFactory工厂
+            DiskFileItemFactory factory = new DiskFileItemFactory();
+            //2、创建一个文件上传解析器
+            ServletFileUpload upload = new ServletFileUpload(factory);
+            //解决上传文件名的中文乱码
+            upload.setHeaderEncoding("UTF-8");
+            //3、判断提交上来的数据是否是上传表单的数据
+            if (!ServletFileUpload.isMultipartContent(request)) {
+                //按照传统方式获取数据
+                return "upload:/message.jsp";
+            }
+            //4、使用ServletFileUpload解析器解析上传数据，解析结果返回的是一个List<FileItem>集合，每一个FileItem对应一个Form表单的输入项
+            List<FileItem> list = upload.parseRequest(request);
+            for (FileItem item : list) {
+                //如果fileitem中封装的是普通输入项的数据
+                if (item.isFormField()) {
+                    String name = item.getFieldName();
+                    //解决普通输入项的数据的中文乱码问题
+                    String value = item.getString("UTF-8");
+                    //value = new String(value.getBytes("iso8859-1"),"UTF-8");
+                    System.out.println(name + "=" + value);
+                } else {//如果fileitem中封装的是上传文件
+                    //得到上传的文件名称，
+                    String filename = item.getName();
+                    System.out.println(filename);
+                    if (filename == null || filename.trim().equals("")) {
+                        continue;
+                    }
+                    //注意：不同的浏览器提交的文件名是不一样的，有些浏览器提交上来的文件名是带有路径的，如：  c:\a\b\1.txt，而有些只是单纯的文件名，如：1.txt
+                    //处理获取到的上传文件的文件名的路径部分，只保留文件名部分
+                    filename = filename.substring(filename.lastIndexOf("\\") + 1);
+                    //获取item中的上传文件的输入流
+                    InputStream in = item.getInputStream();
+                    //创建一个文件输出流
+                    FileOutputStream out = new FileOutputStream(savePath + "\\" + filename);
+                    //创建一个缓冲区
+                    byte buffer[] = new byte[1024];
+                    //判断输入流中的数据是否已经读完的标识
+                    int len = 0;
+                    //循环将输入流读入到缓冲区当中，(len=in.read(buffer))>0就表示in里面还有数据
+                    while ((len = in.read(buffer)) > 0) {
+                        //使用FileOutputStream输出流将缓冲区的数据写入到指定的目录(savePath + "\\" + filename)当中
+                        out.write(buffer, 0, len);
+                    }
+                    //关闭输入流
+                    in.close();
+                    //关闭输出流
+                    out.close();
+                    //删除处理文件上传时生成的临时文件
+                    item.delete();
+                    message = "文件上传成功！";
+                }
+            }
+        } catch (Exception e) {
+            message = "文件上传失败！";
+            e.printStackTrace();
+        }
+        return message;
+    }
+
+    // ----------------对googUpload方法进行封装-------------------------
+
     /**
      * 为防止一个目录下面出现太多文件，要使用hash算法打散存储
-     * @Method: makePath
-     * @Description:
-     * @Anthor:孤傲苍狼
      *
      * @param filename 文件名，要根据文件名生成存储目录
      * @param savePath 文件存储路径
      * @return 新的存储目录
+     * @Method: makePath
      */
-    public String makePath(String filename,String savePath){
+    public String makePath(String filename, String savePath) {
         //得到文件名的hashCode的值，得到的就是filename这个字符串对象在内存中的地址
         int hashcode = filename.hashCode();
-        int dir1 = hashcode&0xf;  //0--15
-        int dir2 = (hashcode&0xf0)>>4;  //0-15
+        int dir1 = hashcode & 0xf;  //0--15
+        int dir2 = (hashcode & 0xf0) >> 4;  //0-15
         //构造新的保存目录
         String dir = savePath + "\\" + dir1 + "\\" + dir2;  //upload\2\3  upload\3\5
         //File既可以代表文件也可以代表目录
         File file = new File(dir);
         //如果目录不存在
-        if(!file.exists()){
+        if (!file.exists()) {
             //创建目录
             file.mkdirs();
         }
@@ -57,32 +121,32 @@ public class Pools {
     }
 
     /**
+     * @param filename 文件的原始名称
+     * @return uuid+"_"+文件的原始名称
      * @Method: makeFileName
      * @Description: 生成上传文件的文件名，文件名以：uuid+"_"+文件的原始名称
      * @Anthor:孤傲苍狼
-     * @param filename 文件的原始名称
-     * @return uuid+"_"+文件的原始名称
      */
-    public String makeFileName(String filename){  //2.jpg
+    public String makeFileName(String filename) {  //2.jpg
         //为防止文件覆盖的现象发生，要为上传文件产生一个唯一的文件名
         return UUID.randomUUID().toString() + "_" + filename;
     }
 
     public String getMessage(String message, HttpServletRequest request,
-                             HttpServletResponse response,File tmpFile,String savePath) throws ServletException,
+                             HttpServletResponse response, File tmpFile, String savePath) throws ServletException,
             IOException {
-        try{
+        try {
             //使用Apache文件上传组件处理文件上传步骤：
             //1、创建一个DiskFileItemFactory工厂
             DiskFileItemFactory factory = new DiskFileItemFactory();
             //设置工厂的缓冲区的大小，当上传的文件大小超过缓冲区的大小时，就会生成一个临时文件存放到指定的临时目录当中。
-            factory.setSizeThreshold(1024*1000);//设置缓冲区的大小为100KB，如果不指定，那么缓冲区的大小默认是10KB
+            factory.setSizeThreshold(1024 * 1000);//设置缓冲区的大小为100KB，如果不指定，那么缓冲区的大小默认是10KB
             //设置上传时生成的临时文件的保存目录
             factory.setRepository(tmpFile);
             //2、创建一个文件上传解析器
             ServletFileUpload upload = new ServletFileUpload(factory);
             //监听文件上传进度
-            upload.setProgressListener(new ProgressListener(){
+            upload.setProgressListener(new ProgressListener() {
                 public void update(long pBytesRead, long pContentLength, int arg2) {
                     System.out.println("文件大小为：" + pContentLength + ",当前已处理：" + pBytesRead);
                     /**
@@ -96,38 +160,38 @@ public class Pools {
             //解决上传文件名的中文乱码
             upload.setHeaderEncoding("UTF-8");
             //3、判断提交上来的数据是否是上传表单的数据
-            if(!ServletFileUpload.isMultipartContent(request)){
+            if (!ServletFileUpload.isMultipartContent(request)) {
                 //按照传统方式获取数据
                 return "不存在?!";
             }
             //设置上传单个文件的大小的最大值，目前是设置为1024*1024字节，也就是1MB
-            upload.setFileSizeMax(1024*1024*10);
+            upload.setFileSizeMax(1024 * 1024 * 10);
             //设置上传文件总量的最大值，最大值=同时上传的多个文件的大小的最大值的和，目前设置为100MB
-            upload.setSizeMax(1024*1024*20);
+            upload.setSizeMax(1024 * 1024 * 20);
             //4、使用ServletFileUpload解析器解析上传数据，解析结果返回的是一个List<FileItem>集合，每一个FileItem对应一个Form表单的输入项
             List<FileItem> list = upload.parseRequest(request);
-            for(FileItem item : list){
+            for (FileItem item : list) {
                 //如果fileitem中封装的是普通输入项的数据
-                if(item.isFormField()){
+                if (item.isFormField()) {
                     String name = item.getFieldName();
                     //解决普通输入项的数据的中文乱码问题
                     String value = item.getString("UTF-8");
                     //value = new String(value.getBytes("iso8859-1"),"UTF-8");
                     System.out.println(name + "=" + value);
-                }else{//如果fileitem中封装的是上传文件
+                } else {//如果fileitem中封装的是上传文件
                     //得到上传的文件名称，
                     String filename = item.getName();
                     System.out.println(filename);
-                    if(filename==null || filename.trim().equals("")){
+                    if (filename == null || filename.trim().equals("")) {
                         continue;
                     }
                     //注意：不同的浏览器提交的文件名是不一样的，有些浏览器提交上来的文件名是带有路径的，如：  c:\a\b\1.txt，而有些只是单纯的文件名，如：1.txt
                     //处理获取到的上传文件的文件名的路径部分，只保留文件名部分
-                    filename = filename.substring(filename.lastIndexOf("\\")+1);
+                    filename = filename.substring(filename.lastIndexOf("\\") + 1);
                     //得到上传文件的扩展名
-                    String fileExtName = filename.substring(filename.lastIndexOf(".")+1);
+                    String fileExtName = filename.substring(filename.lastIndexOf(".") + 1);
                     //如果需要限制上传的文件类型，那么可以通过文件的扩展名来判断上传的文件类型是否合法
-                    System.out.println("上传的文件的扩展名是："+fileExtName);
+                    System.out.println("上传的文件的扩展名是：" + fileExtName);
                     //获取item中的上传文件的输入流
                     InputStream in = item.getInputStream();
                     //得到文件保存的名称
@@ -141,7 +205,7 @@ public class Pools {
                     //判断输入流中的数据是否已经读完的标识
                     int len = 0;
                     //循环将输入流读入到缓冲区当中，(len=in.read(buffer))>0就表示in里面还有数据
-                    while((len=in.read(buffer))>0){
+                    while ((len = in.read(buffer)) > 0) {
                         //使用FileOutputStream输出流将缓冲区的数据写入到指定的目录(savePath + "\\" + filename)当中
                         out.write(buffer, 0, len);
                     }
@@ -151,71 +215,86 @@ public class Pools {
                     out.close();
                     //删除处理文件上传时生成的临时文件
                     //item.delete();
-                    return  "文件上传成功！";
+                    return "文件上传成功！";
                 }
             }
-        }catch (FileUploadBase.FileSizeLimitExceededException e) {
+        } catch (FileUploadBase.FileSizeLimitExceededException e) {
             e.printStackTrace();
             return "单个文件超出最大值！！！";
-        }catch (FileUploadBase.SizeLimitExceededException e) {
+        } catch (FileUploadBase.SizeLimitExceededException e) {
             e.printStackTrace();
             return "上传文件的总的大小超出限制的最大值！！！";
-        }catch (Exception e) {
+        } catch (Exception e) {
             e.printStackTrace();
-            return  "文件上传失败！";
+            return "文件上传失败！";
         }
         return "上传成功";
     }
 
 
     // ------------对listFile方法进行封装---------------------
+
     /**
+     * @param file 即代表一个文件，也代表一个文件目录
+     * @param map  存储文件名的Map集合
      * @Method: listfile
      * @Description: 递归遍历指定目录下的所有文件
-     * @param file 即代表一个文件，也代表一个文件目录
-     * @param map 存储文件名的Map集合
      */
-    public void listfile(File file, Map<String,String> map){
+    public void listfile(File file, Map<String, String> map) {
         //如果file代表的不是一个文件，而是一个目录
-        if(!file.isFile()){
+        if (!file.isFile()) {
             //列出该目录下的所有文件和目录
             File files[] = file.listFiles();
             //遍历files[]数组
-            for(File f : files){
+            for (File f : files) {
                 //递归
-                listfile(f,map);
+                listfile(f, map);
             }
-        }else{
+        } else {
             /**
              * 处理文件名，上传后的文件是以uuid_文件名的形式去重新命名的，去除文件名的uuid_部分
              file.getName().indexOf("_")检索字符串中第一次出现"_"字符的位置，如果文件名类似于：9349249849-88343-8344_阿_凡_达.avi
              那么file.getName().substring(file.getName().indexOf("_")+1)处理之后就可以得到阿_凡_达.avi部分
              */
-            String realName = file.getName().substring(file.getName().indexOf("_")+1);
+            String realName = file.getName().substring(file.getName().indexOf("_") + 1);
             //file.getName()得到的是文件的原始名称，这个名称是唯一的，因此可以作为key，realName是处理过后的名称，有可能会重复
             map.put(file.getName(), realName);
         }
     }
 
     /**
-     * @Method: findFileSavePathByFileName
-     * @Description: 通过文件名和存储上传文件根目录找出要下载的文件的所在路径
-     * @Anthor:孤傲苍狼
-     * @param filename 要下载的文件名
+     * @param filename     要下载的文件名
      * @param saveRootPath 上传文件保存的根目录，也就是/WEB-INF/upload目录
      * @return 要下载的文件的存储目录
+     * @Method: findFileSavePathByFileName
+     * @Description: 通过文件名和存储上传文件根目录找出要下载的文件的所在路径
      */
-    public String findFileSavePathByFileName(String filename,String saveRootPath){
+    public String findFileSavePathByFileName(String filename, String saveRootPath) {
         int hashcode = filename.hashCode();
-        int dir1 = hashcode&0xf;  //0--15
-        int dir2 = (hashcode&0xf0)>>4;  //0-15
+        int dir1 = hashcode & 0xf;  //0--15
+        int dir2 = (hashcode & 0xf0) >> 4;  //0-15
         String dir = saveRootPath + "\\" + dir1 + "\\" + dir2;  //upload\2\3  upload\3\5
         File file = new File(dir);
-        if(!file.exists()){
+        if (!file.exists()) {
             //创建目录
             file.mkdirs();
         }
         return dir;
     }
 
+    //处理不同浏览器的乱码问题
+    /**
+     * @param agent ：客户端所用的浏览器
+     * @param filename：文件名
+     */
+    public String getFileName(String agent, String filename) throws UnsupportedEncodingException {
+        if (agent.contains("MSIE")) {//IE浏览器
+            filename = URLEncoder.encode(filename, "UTF8");
+        } else if (agent.contains("Mozilla")) {//google,火狐浏览器
+            filename = new String(filename.getBytes(), "ISO8859-1");
+        } else {
+            filename = URLEncoder.encode(filename, "UTF8");//其他浏览器
+        }
+        return filename;
+    }
 }

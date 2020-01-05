@@ -7,6 +7,8 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
 /**
@@ -40,12 +42,15 @@ public class BaseServlet extends HttpServlet { // 通过反射执行VoteServlet 
         }
 
         String result = null;
+
         try {
 //            method.setAccessible(true);
             result = (String) method.invoke(this, req, resp);
-        } catch (Exception e) {
-            throw new RuntimeException("不支持此方法的执行");
+        } catch (IllegalAccessException | InvocationTargetException e) {
+            e.printStackTrace();
+            throw new RuntimeException("不支持此方法");
         }
+
 
         if (null == result) {
             throw new RuntimeException("您的方法需要返回一个String类型的数");
@@ -83,6 +88,10 @@ public class BaseServlet extends HttpServlet { // 通过反射执行VoteServlet 
                 req.getRequestDispatcher(split[1]).forward(req, resp); //请求转发
                 break;
             case "downFile:": //下载功能
+                System.out.println(split[1] + "!");
+                req.getRequestDispatcher(split[1]).forward(req, resp); //请求转发
+                break;
+            case "downFile2:":
                 System.out.println(split[1] + "!");
                 req.getRequestDispatcher(split[1]).forward(req, resp); //请求转发
                 break;
